@@ -7,7 +7,6 @@ import (
 )
 
 //go:generate enumer --type=SecretManagerType --trimprefix=SecretManagerType -json -yaml
-//go:generate enumer --type=KVVersion --trimprefix=KVVersion -json -yaml
 //go:generate pflags Config --default-var=DefaultConfig
 
 var (
@@ -32,8 +31,7 @@ var (
 			},
 		},
 		VaultSecretManagerConfig: VaultSecretManagerConfig{
-			Role:      "flyte",
-			KVVersion: KVVersion2,
+			Role: "flyte",
 		},
 	}
 
@@ -59,16 +57,6 @@ const (
 	SecretManagerTypeVault
 )
 
-// Defines with KV Engine Version to use with VaultSecretManager - https://www.vaultproject.io/docs/secrets/kv#kv-secrets-engine
-type KVVersion int
-
-const (
-	// KV v1 refers to unversioned secrets
-	KVVersion1 KVVersion = iota
-	// KV v2 refers to versioned secrets
-	KVVersion2
-)
-
 type Config struct {
 	MetricsPrefix            string                   `json:"metrics-prefix" pflag:",An optional prefix for all published metrics."`
 	CertDir                  string                   `json:"certDir" pflag:",Certificate directory to use to write generated certs. Defaults to /etc/webhook/certs/"`
@@ -86,8 +74,7 @@ type AWSSecretManagerConfig struct {
 }
 
 type VaultSecretManagerConfig struct {
-	Role      string    `json:"role" pflag:",Specifies the vault role to use"`
-	KVVersion KVVersion `json:"kvVersion" pflag:"-,The KV Engine Version. Defaults to 2. Use 1 for unversioned secrets. Refer to - https://www.vaultproject.io/docs/secrets/kv#kv-secrets-engine."`
+	Role string `json:"role" pflag:",Specifies the vault role to use"`
 }
 
 func GetConfig() *Config {

@@ -82,6 +82,24 @@ func ExpectedKVv2(uuid string) *corev1.Pod {
 	return expected
 }
 
+func ExpectedDB(uuid string) *corev1.Pod {
+	// Injects uuid into expected output for KV v2 secrets
+	expected := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				"vault.hashicorp.com/agent-inject":                              "true",
+				"vault.hashicorp.com/secret-volume-path":                        "/etc/flyte/secrets",
+				"vault.hashicorp.com/role":                                      "flyte",
+				"vault.hashicorp.com/agent-pre-populate-only":                   "true",
+				fmt.Sprintf("vault.hashicorp.com/agent-inject-secret-%s", uuid): "foo",
+				fmt.Sprintf("vault.hashicorp.com/agent-inject-file-%s", uuid):   "foo/bar",
+			},
+		},
+		Spec: PodSpec,
+	}
+	return expected
+}
+
 func NewInputPod() *corev1.Pod {
 	// Need to create a new Pod for every test since annotations are otherwise appended to original reference object
 	p := &corev1.Pod{
@@ -100,14 +118,9 @@ func NewInputPod() *corev1.Pod {
 }
 
 func TestVaultSecretManagerInjector_Inject(t *testing.T) {
-	inputSecret := &coreIdl.Secret{
-		Group: "foo",
-		Key:   "bar",
-	}
 
 	ctx := context.Background()
 	type args struct {
-		cfg    config.VaultSecretManagerConfig
 		secret *coreIdl.Secret
 		p      *corev1.Pod
 	}
@@ -120,9 +133,12 @@ func TestVaultSecretManagerInjector_Inject(t *testing.T) {
 		{
 			name: "KVv1 Secret",
 			args: args{
-				cfg:    config.VaultSecretManagerConfig{Role: "flyte", KVVersion: config.KVVersion1},
-				secret: inputSecret,
-				p:      NewInputPod(),
+				secret: &coreIdl.Secret{
+					Group:        "foo",
+					Key:          "bar",
+					GroupVersion: "kv1",
+				},
+				p: NewInputPod(),
 			},
 			want:    ExpectedKVv1,
 			wantErr: false,
@@ -130,28 +146,33 @@ func TestVaultSecretManagerInjector_Inject(t *testing.T) {
 		{
 			name: "KVv2 Secret",
 			args: args{
-				cfg:    config.VaultSecretManagerConfig{Role: "flyte", KVVersion: config.KVVersion2},
-				secret: inputSecret,
-				p:      NewInputPod(),
+				secret: &coreIdl.Secret{
+					Group:        "foo",
+					Key:          "bar",
+					GroupVersion: "kv2",
+				},
+				p: NewInputPod(),
 			},
 			want:    ExpectedKVv2,
 			wantErr: false,
 		},
 		{
-			name: "Unsupported KV version",
+			name: "DB Secret",
 			args: args{
-				cfg:    config.VaultSecretManagerConfig{Role: "flyte", KVVersion: 3},
-				secret: inputSecret,
-				p:      NewInputPod(),
+				secret: &coreIdl.Secret{
+					Group: "foo",
+					Key:   "bar",
+				},
+				p: NewInputPod(),
 			},
-			want:    nil,
-			wantErr: true,
+			want:    ExpectedDB,
+			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			i := NewVaultSecretManagerInjector(tt.args.cfg)
+			i := NewVaultSecretManagerInjector(config.DefaultConfig.VaultSecretManagerConfig)
 			got, _, err := i.Inject(ctx, tt.args.secret, tt.args.p)
 
 			if (err != nil) != tt.wantErr {

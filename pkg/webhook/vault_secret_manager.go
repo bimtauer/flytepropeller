@@ -68,11 +68,7 @@ func (i VaultSecretManagerInjector) Inject(ctx context.Context, secret *coreIdl.
 			"vault.hashicorp.com/agent-pre-populate-only": "true",
 		}
 
-		secretVaultAnnotations, err := CreateVaultAnnotationsForSecret(secret, i.cfg.KVVersion)
-		// Creating annotations can break with an unsupported KVVersion
-		if err != nil {
-			return p, false, err
-		}
+		secretVaultAnnotations := CreateVaultAnnotationsForSecret(secret)
 
 		p.ObjectMeta.Annotations = utils.UnionMaps(p.ObjectMeta.Annotations, commonVaultAnnotations)
 		p.ObjectMeta.Annotations = utils.UnionMaps(p.ObjectMeta.Annotations, secretVaultAnnotations)
