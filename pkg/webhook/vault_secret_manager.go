@@ -34,8 +34,8 @@ func (i VaultSecretManagerInjector) Type() config.SecretManagerType {
 }
 
 func (i VaultSecretManagerInjector) Inject(ctx context.Context, secret *coreIdl.Secret, p *corev1.Pod) (newP *corev1.Pod, injected bool, err error) {
-	if len(secret.Group) == 0 || len(secret.Key) == 0 {
-		return nil, false, fmt.Errorf("Vault Secrets Webhook requires both key and group to be set. "+
+	if len(secret.Group) == 0 {
+		return nil, false, fmt.Errorf("Vault Secrets Webhook requires at least a group to be set. "+
 			"Secret: [%v]", secret)
 	}
 
@@ -68,7 +68,10 @@ func (i VaultSecretManagerInjector) Inject(ctx context.Context, secret *coreIdl.
 			"vault.hashicorp.com/agent-pre-populate-only": "true",
 		}
 
-		secretVaultAnnotations := CreateVaultAnnotationsForSecret(secret)
+		secretVaultAnnotations, err := CreateVaultAnnotationsForSecret(secret)
+		if err != nil {
+			return p, false, err
+		}
 
 		p.ObjectMeta.Annotations = utils.UnionMaps(p.ObjectMeta.Annotations, commonVaultAnnotations)
 		p.ObjectMeta.Annotations = utils.UnionMaps(p.ObjectMeta.Annotations, secretVaultAnnotations)
