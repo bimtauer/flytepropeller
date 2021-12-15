@@ -118,7 +118,7 @@ func AppendVolume(volumes []corev1.Volume, volume corev1.Volume) []corev1.Volume
 	return append(volumes, volume)
 }
 
-func CreateVaultAnnotationsForSecret(secret *core.Secret) (map[string]string, error) {
+func CreateVaultAnnotationsForSecret(secret *core.Secret) map[string]string {
 	// Creates three grouped annotations "agent-inject-secret", "agent-inject-file" and "agent-inject-template"
 	// for a given secret request and KV engine version. The annotations respectively handle: 1. retrieving the
 	// secret from a vault path specified in secret.Group, 2. storing it in a file named after secret.Group/secret.Key
@@ -135,21 +135,15 @@ func CreateVaultAnnotationsForSecret(secret *core.Secret) (map[string]string, er
 	// and wraps the k:v pairs into an additional subfield.
 	switch secret.GroupVersion {
 	case "kv1":
-		if len(secret.Key) == 0 {
-			return nil, fmt.Errorf("a secret key need to be set to retrieve a specific KV1 secret. "+
-				"Secret: [%v]", secret)
-		}
 		query := ".Data"
 		template := fmt.Sprintf(`{{- with secret "%s" -}}{{ %s.%s }}{{- end -}}`, secret.Group, query, secret.Key)
 		secretVaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", id)] = template
 	case "kv2":
-		if len(secret.Key) == 0 {
-			return nil, fmt.Errorf("a secret key need to be set to retrieve a specific KV2 secret. "+
-				"Secret: [%v]", secret)
-		}
 		query := ".Data.data"
 		template := fmt.Sprintf(`{{- with secret "%s" -}}{{ %s.%s }}{{- end -}}`, secret.Group, query, secret.Key)
 		secretVaultAnnotations[fmt.Sprintf("vault.hashicorp.com/agent-inject-template-%s", id)] = template
+	case "db":
+		// Do nothing
 	}
-	return secretVaultAnnotations, nil
+	return secretVaultAnnotations
 }
