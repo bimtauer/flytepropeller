@@ -70,7 +70,7 @@ func (i VaultSecretManagerInjector) Inject(ctx context.Context, secret *coreIdl.
 
 		secretVaultAnnotations := CreateVaultAnnotationsForSecret(secret)
 
-		p.ObjectMeta.Annotations = utils.UnionMaps(p.ObjectMeta.Annotations, commonVaultAnnotations)
+		p.ObjectMeta.Annotations = utils.UnionMaps(commonVaultAnnotations, p.ObjectMeta.Annotations) // if a role is already set we want to keep that one
 		p.ObjectMeta.Annotations = utils.UnionMaps(p.ObjectMeta.Annotations, secretVaultAnnotations)
 
 	case coreIdl.Secret_ENV_VAR:
